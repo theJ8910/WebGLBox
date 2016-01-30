@@ -150,10 +150,19 @@ function transform( matrix, vec ) {
     //Homogenous W. To convert from homogenous to cartesian coordinates, we divide each coordinate by this and drop the W.
     var w = matrix[3]*vec[0] + matrix[7]*vec[1] + matrix[11]*vec[2] + matrix[15];
     return [
-        ( matrix[0]*vec[0] + matrix[4]*vec[1] + matrix[8]*vec[2] + matrix[12] ) / w,
-        ( matrix[0]*vec[0] + matrix[4]*vec[1] + matrix[8]*vec[2] + matrix[12] ) / w,
-        ( matrix[0]*vec[0] + matrix[4]*vec[1] + matrix[8]*vec[2] + matrix[12] ) / w
+        ( matrix[0]*vec[0] + matrix[4]*vec[1] + matrix[ 8]*vec[2] + matrix[12] ) / w,
+        ( matrix[1]*vec[0] + matrix[5]*vec[1] + matrix[ 9]*vec[2] + matrix[13] ) / w,
+        ( matrix[2]*vec[0] + matrix[6]*vec[1] + matrix[10]*vec[2] + matrix[14] ) / w
     ];
+}
+
+function matrixCopy( mat ) {
+    return new Float32Array([
+        mat[ 0], mat[ 1], mat[ 2], mat[ 3],
+        mat[ 4], mat[ 5], mat[ 6], mat[ 7],
+        mat[ 8], mat[ 9], mat[10], mat[11],
+        mat[12], mat[13], mat[14], mat[15]
+    ]);
 }
 
 //Multiplies the 4x4 matrix left with the 4x4 matrix right.
@@ -185,6 +194,72 @@ function matrixMultiply( left, right ) {
         left[2] * right[12] + left[6] * right[13] + left[10] * right[14] + left[14] * right[15], //14 = left.row_2 * right.column_3
         left[3] * right[12] + left[7] * right[13] + left[11] * right[14] + left[15] * right[15], //15 = left.row_3 * right.column_3
     ]);
+}
+
+//Returns the inverse of the given 4x4 matrix, or null if the matrix is not invertible.
+function matrixInvert( mat ) {
+    /*
+     0 4  8 12
+     1 5  9 13
+     2 6 10 14
+     3 7 11 15
+    */
+    var _00 = mat[0], _01 = mat[4], _02 = mat[ 8], _03 = mat[12];
+    var _10 = mat[1], _11 = mat[5], _12 = mat[ 9], _13 = mat[13];
+    var _20 = mat[2], _21 = mat[6], _22 = mat[10], _23 = mat[14];
+    var _30 = mat[3], _31 = mat[7], _32 = mat[11], _33 = mat[15];
+    
+    var m1 = _22 * _33 - _23 * _32;
+    var m2 = _21 * _33 - _23 * _31;
+    var m3 = _21 * _32 - _22 * _31;
+    var m4 = _20 * _33 - _23 * _30;
+    var m5 = _20 * _32 - _22 * _30;
+    var m6 = _20 * _31 - _21 * _30;
+
+    var c00 = _11 * m1 - _12 * m2 + _13 * m3;
+    var c01 = _12 * m4 - _13 * m5 - _10 * m1;
+    var c02 = _10 * m2 - _11 * m4 + _13 * m6;
+    var c03 = _11 * m5 - _12 * m6 - _10 * m3;
+
+    var det = _00 * c00 + _01 * c01 + _02 * c02 + _03 * c03;
+
+    if( det == 0 )
+        return null;
+
+    var m7  = _12 * _33 - _13 * _32;
+    var m8  = _11 * _33 - _13 * _31;
+    var m9  = _11 * _32 - _12 * _31;
+    var m10 = _10 * _33 - _13 * _30;
+    var m11 = _10 * _32 - _12 * _30;
+    var m12 = _10 * _31 - _11 * _30;
+    var m13 = _12 * _23 - _13 * _22;
+    var m14 = _11 * _23 - _13 * _21;
+    var m15 = _11 * _22 - _12 * _21;
+    var m16 = _10 * _23 - _13 * _20;
+    var m17 = _10 * _22 - _12 * _20;
+    var m18 = _10 * _21 - _11 * _20;
+
+    return [
+        c00 / det,                                   //_00
+        c01 / det,                                   //_10
+        c02 / det,                                   //_20
+        c03 / det,                                   //_30
+        
+        ( _02 * m2  - _01 * m1  - _03 * m3  ) / det, //_01
+        ( _00 * m1  - _02 * m4  + _03 * m5  ) / det, //_11
+        ( _01 * m4  - _00 * m2  - _03 * m6  ) / det, //_21
+        ( _00 * m3  - _01 * m5  + _02 * m6  ) / det, //_31
+        
+        ( _01 * m7  - _02 * m8  + _03 * m9  ) / det, //_02
+        ( _02 * m10 - _00 * m7  - _03 * m11 ) / det, //_12
+        ( _00 * m8  - _01 * m10 + _03 * m12 ) / det, //_22
+        ( _01 * m11 - _00 * m9  - _02 * m12 ) / det, //_32
+
+        ( _02 * m14 - _01 * m13 - _03 * m15 ) / det, //_03
+        ( _00 * m13 - _02 * m16 + _03 * m17 ) / det, //_13
+        ( _01 * m16 - _00 * m14 - _03 * m18 ) / det, //_23
+        ( _00 * m15 - _01 * m17 + _02 * m18 ) / det  //_33
+    ];
 }
 
 //Returns a string with each of the matrix's components, organized into rows and columns

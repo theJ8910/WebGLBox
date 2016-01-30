@@ -32,6 +32,10 @@ function vecMul( scalar, vec ) {
     ];
 }
 
+function vecSqLength( vec ) {
+    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
+}
+
 //Returns how long the given vector is in units.
 function vecLength( vec ) {
     return Math.sqrt( vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2] );
