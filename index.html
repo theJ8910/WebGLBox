@@ -3,7 +3,7 @@
 <head>
 <title>Box Renderer</title>
 <meta charset="UTF-8"/>
-<link rel="stylesheet" type="text/css" href="../main.css" />
+<link rel="stylesheet" type="text/css" href="main.css" />
 
 <style>
 @keyframes cycle_color {
@@ -33,6 +33,11 @@ h3 {
 #instructions {
     display: inline-block;
     vertical-align: top;
+}
+img.sample {
+    width:           32px;
+    height:          32px;
+    image-rendering: -moz-crisp-edges;
 }
 </style>
 
@@ -103,7 +108,7 @@ void main() {
     else                                        { f = 1.0;        }
 
     vec4 texel = texture2D( u_sampler, v_uv );
-    gl_FragColor = vec4( f * texel.xyz, texel.a ) - ( c_white - u_color );
+    gl_FragColor = vec4( f * texel.rgb, texel.a ) - ( c_white - u_color );
 }
 </script>
 
@@ -134,10 +139,10 @@ var SIDE_DIRECTION = [
 
 //To avoid writing depth-sorting code.
 var ROTATION_SIDE_DRAW_ORDER = [
-    [ SIDE_BOTTOM, SIDE_BACK, SIDE_LEFT, SIDE_RIGHT, SIDE_FRONT, SIDE_TOP ], //0°
-    [ SIDE_BOTTOM, SIDE_FRONT, SIDE_LEFT, SIDE_BACK, SIDE_RIGHT, SIDE_TOP ], //90°
-    [ SIDE_BOTTOM, SIDE_FRONT, SIDE_RIGHT, SIDE_LEFT, SIDE_BACK, SIDE_TOP ], //180°
-    [ SIDE_BOTTOM, SIDE_RIGHT, SIDE_BACK, SIDE_FRONT, SIDE_LEFT, SIDE_TOP ], //270°
+    [ SIDE_BOTTOM, SIDE_BACK,  SIDE_LEFT,  SIDE_RIGHT, SIDE_FRONT, SIDE_TOP ], //0°
+    [ SIDE_BOTTOM, SIDE_FRONT, SIDE_LEFT,  SIDE_BACK,  SIDE_RIGHT, SIDE_TOP ], //90°
+    [ SIDE_BOTTOM, SIDE_FRONT, SIDE_RIGHT, SIDE_LEFT,  SIDE_BACK,  SIDE_TOP ], //180°
+    [ SIDE_BOTTOM, SIDE_RIGHT, SIDE_BACK,  SIDE_FRONT, SIDE_LEFT,  SIDE_TOP ], //270°
 ];
 
 //Valid image MIME types and extensions
@@ -246,6 +251,7 @@ var t_side = [
 ];
 
 //Presentation
+var needRender     = false; //Set to true when rerender() is called to indicate the scene needs to be re-rendered
 var boxAngle       = 0;     //Current cube rotation angle
 var boxAngleIdeal  = 0;     //Ideal (desired) cube rotation angle
 var boxAngleDelta  = 0;     //How much to add / subtract to the cube's angle each frame.
@@ -313,7 +319,7 @@ function lookupUniform( program, name ) {
     var u = gl.getUniformLocation( program, name );
     if( u == null || u == -1 ) {
         console.error( "Couldn't find uniform \"" + name + "\"." );
-        return false;
+        return null;
     }
     return u;
 }
@@ -489,10 +495,65 @@ function initConfiguration() {
     gl.uniform4f( u_color, 1, 1, 1, 1 );
 }
 
+//This function should be called any time a change affecting the rendered scene is made.
+//It signals that the scene should be re-rendered as soon as possible.
+function rerender() {
+    needRender = true;
+}
+
+//If transparent is true, enables transparency.
+//Otherwise, disables transparency.
+function setTransparent( transparent ) {
+    gl[transparent ? "enable" : "disable" ]( gl.BLEND );
+    rerender()
+}
+
+//If doublesided is true, enables double-sided polygons.
+//Otherwise, disables double-sided polygons.
+function setDoubleSided( doublesided ) {
+    gl[doublesided ? "disable" : "enable" ]( gl.CULL_FACE );
+    rerender()
+}
+
+//Sets the side to be highlighted. Highlighted sides are rendered green by default.
+//side is expected to be a SIDE_* enum or null.
+//If side is null, no side will be highlighted.
+function setHighlightSide( side ) {
+    if( side == highlight_side )
+        return;
+
+    highlight_side = side;
+    rerender()
+}
+
+//Sets the texture on a given side.
+//side is expected to be a SIDE_* enum.
+//texture is expected to be a texture object returned by loadTexture / loadTextureFromURL.
+function setSideTexture( side, texture ) {
+    var old = t_side[ side ];
+    if( old == texture )
+        return;
+
+    //Decrement old texture count and increment next texture count
+    if( old !== null )
+        decTexture( old );
+    incTexture( texture );
+
+    //Set new texture
+    t_side[ side ] = texture;
+
+    rerender();
+}
+
+//This function is called once per frame to make changes to the world.
+//Changes
 function update() {
+    var sideChanged = false;
     for( var i = SIDE_FRONT; i <= SIDE_BOTTOM; ++i ) {
-        side_animators[i].update();
+        sideChanged |= side_animators[i].update();
     }
+    if( sideChanged )
+        rerender();
 
     //Adjust angle (if necessary)
     if( boxAngle != boxAngleIdeal ) {
@@ -531,13 +592,15 @@ function update() {
         m_world[5] =  c;
 
         //m_world = world( [c,s,0], [-s,c,0], up, zero );
+        rerender();
     }
+
+    if( needRender )
+        renderScene();
 }
 
 //Calls every frame to make WebGL render our cube
 function renderScene() {
-    update()
-
     //Clear screen
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
@@ -555,18 +618,7 @@ function renderScene() {
         gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 12*i ); //note: 6 = number of vertices per cube side; 12 = number of bytes per cube side
         if( highlight_side == i ) { gl.uniform4f( u_color, 1, 1, 1, 1 ); }
     }
-}
-
-//If true, enables transparency.
-//If false, disables transparency.
-function setTransparent( transparent ) {
-    gl[transparent ? "enable" : "disable" ]( gl.BLEND );
-}
-
-//If true, enables double-sided polygons.
-//If false, disables double-sided polygons.
-function setDoubleSided( doublesided ) {
-    gl[doublesided ? "disable" : "enable" ]( gl.CULL_FACE );
+    needRender = false;
 }
 
 //Sets the yaw angle for the box. Defaults to 0.
@@ -581,7 +633,7 @@ function rotateBox( amt ) {
 function trace( line ) {
     var nearest_side = null;
     var nearest_t    = 10000;
-    for( var i = SIDE_FRONT; i < SIDE_BOTTOM; ++i ) {
+    for( var i = SIDE_FRONT; i <= SIDE_BOTTOM; ++i ) {
         //1, 0, 2
         var side_offset = SIDE_SIZE * i;
         var vao = side_offset + VERTEX_SIZE;
@@ -622,22 +674,6 @@ function getAimLine( x, y ) {
     return line( vecSub( far, near ), near );
 }
 
-function setSideTexture( side, texture ) {
-    var old = t_side[ side ];
-    if( old == texture )
-        return;
-
-    //Decrement old texture count and increment next texture count
-    if( old !== null )
-        decTexture( old );
-    incTexture( texture );
-
-    //Set new texture
-    t_side[ side ] = texture;
-
-    //needUpdate();
-}
-
 function isImage( file ) {
     return VALID_TYPES.indexOf( file.type ) != -1;
 }
@@ -662,20 +698,18 @@ function dragInProgress( evt ) {
 
     var pt = clientToLocal( evt.clientX, evt.clientY, canvas );
     var side = trace( getAimLine( pt[0], pt[1] ) );
-    highlight_side = side;
+    setHighlightSide( side );
     return true;
 }
 
 function dragEnded( evt ) {
-    highlight_side = null;
+    setHighlightSide( null );
 }
 
 function setupEventHandlers() {
     var canvas = document.getElementById( "canvas" );
-    canvas.addEventListener( "contextmenu", function( evt ) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }, false );
+
+    //When the canvas is clicked, rotate a side
     canvas.addEventListener( "click", function( evt ) {
         var rotation;
         if( evt.button != 0 )
@@ -788,8 +822,8 @@ function ready( texture ) {
     for( var i = SIDE_FRONT; i <= SIDE_BOTTOM; ++i )
         setSideTexture( i, t_default );
 
-    setInterval( renderScene, 1000 * FRAMETIME );
-    //renderScene()
+    renderScene()
+    setInterval( update, 1000 * FRAMETIME );
 }
 
 window.addEventListener( "load", function( event ) {
@@ -813,6 +847,7 @@ window.addEventListener( "load", function( event ) {
     Drag/drop an image from your computer onto a side of the box.<br/>
     Click on a box side to rotate that side counter-clockwise. SHIFT + Click to rotate clockwise.<br/>
     Right click the canvas to save the box. The animated background will not be saved; it's merely a visual effect to show transparency.<br/>
+    <img src="default.png" class="sample"/><br/>
 </div>
 <div style="width:640px"><a id="ccw_rotate" href="#" style="display: inline-block; width: 50%; text-align: left"><img src="arrow_rotate_anticlockwise.png"/>Rotate CCW</a><a id="cw_rotate" href="#" style="display: inline-block; width: 50%; text-align: right">Rotate CW<img src="arrow_rotate_clockwise.png"/></a></div>
 <div><input id="transparent" type="checkbox">Transparent textures</input></div>

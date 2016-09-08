@@ -33,6 +33,7 @@ SideAnimator.prototype.update = function() {
             this.state     = 2;
         }
         this.updateMatrix();
+        return true;
     break;
     case 2:
         var newAngle = this.angle + this.angleDelta;
@@ -45,6 +46,7 @@ SideAnimator.prototype.update = function() {
             this.state = 3;
         }
         this.updateMatrix();
+        return true;
     break;
     case 3:
         var newPos = this.translate - SIDE_TRANSLATE_DELTA;
@@ -55,8 +57,10 @@ SideAnimator.prototype.update = function() {
             this.state     = 0;
         }
         this.updateMatrix();
+        return true;
     break;
     }
+    return false;
 }
 
 SideAnimator.prototype.updateMatrix = function() {
