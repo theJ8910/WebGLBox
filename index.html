@@ -261,7 +261,8 @@ var draw_order     = ROTATION_SIDE_DRAW_ORDER[0]; //Controls the order the sides
 
 function initWebGL( canvas ) {
     //Create OpenGL context
-    gl = canvas.getContext( "webgl" ) || canvas.getContext( "experimental-webgl" );
+    var attr = { preserveDrawingBuffer: true };
+    gl = canvas.getContext( "webgl", attr ) || canvas.getContext( "experimental-webgl", attr );
     if( !gl ) {
         console.error( "Can't init GL context." );
         return false;
