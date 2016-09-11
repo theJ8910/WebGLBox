@@ -19,7 +19,7 @@
 //Keep this in mind when looking at matrix arrays here!
 
 //4x4 identity matrix
-var identity = new Float32Array([
+var IDENTITY = new Float32Array([
     1, 0, 0, 0,
     0, 1, 0, 0,
     0, 0, 1, 0,
@@ -103,7 +103,7 @@ function view_orbit( pt, pitch, yaw, distance ) {
     //fwd faces towards the point.
     var fwd   = [ -c2*c, -s2*c, -s ];
     //A vector as close to "up" as possible while still being at a 90 degree angle to fwd. It's a "relative up".
-    var up_r  = vecNormalize( vecProject( up, fwd ) ); 
+    var up_r  = vecNormalize( vecProject( UP, fwd ) );
     //At a 90 degree angle to both fwd and up.
     var right = vecCross( fwd, up_r );
     //We move in the direction opposite of fwd, by "distance" units.
@@ -156,6 +156,7 @@ function transform( matrix, vec ) {
     ];
 }
 
+//Returns a copy of the given matrix.
 function matrixCopy( mat ) {
     return new Float32Array([
         mat[ 0], mat[ 1], mat[ 2], mat[ 3],
@@ -239,7 +240,7 @@ function matrixInvert( mat ) {
     var m17 = _10 * _22 - _12 * _20;
     var m18 = _10 * _21 - _11 * _20;
 
-    return [
+    return new Float32Array([
         c00 / det,                                   //_00
         c01 / det,                                   //_10
         c02 / det,                                   //_20
@@ -259,7 +260,7 @@ function matrixInvert( mat ) {
         ( _00 * m13 - _02 * m16 + _03 * m17 ) / det, //_13
         ( _01 * m16 - _00 * m14 - _03 * m18 ) / det, //_23
         ( _00 * m15 - _01 * m17 + _02 * m18 ) / det  //_33
-    ];
+    ]);
 }
 
 //Returns a string with each of the matrix's components, organized into rows and columns

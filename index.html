@@ -102,9 +102,9 @@ void main() {
     //East:   63, 63, 63
     //North:  42, 42, 42
     float f;
-    if(      dot( v_normal, c_north ) < 0.707 ) { f = 0.94949495; }
-    else if( dot( v_normal, c_east  ) < 0.707 ) { f = 0.63636364; }
-    else if( dot( v_normal, c_up    ) < 0.707 ) { f = 0.42424242; }
+    if(      dot( v_normal, c_north ) > 0.707 ) { f = 0.42424242; }
+    else if( dot( v_normal, c_east  ) > 0.707 ) { f = 0.63636364; }
+    else if( dot( v_normal, c_up    ) > 0.707 ) { f = 0.94949495; }
     else                                        { f = 1.0;        }
 
     vec4 texel = texture2D( u_sampler, v_uv );
@@ -117,7 +117,7 @@ void main() {
 //CONSTANTS
 
 //Orthographic window is this many units wide
-var ortho_width = 3.1462643146514893;
+var ORTHO_WIDTH = 3.1462643146514893;
 
 //Cube side enums
 var SIDE_FRONT  = 0;
@@ -129,12 +129,12 @@ var SIDE_BOTTOM = 5;
 
 //Side directions (from center of cube)
 var SIDE_DIRECTION = [
-    north, //SIDE_FRONT
-    south, //SIDE_BACK
-    east,  //SIDE_RIGHT
-    west,  //SIDE_LEFT
-    up,    //SIDE_TOP
-    down,  //SIDE_BOTTOM
+    NORTH, //SIDE_FRONT
+    SOUTH, //SIDE_BACK
+    EAST,  //SIDE_RIGHT
+    WEST,  //SIDE_LEFT
+    UP,    //SIDE_TOP
+    DOWN,  //SIDE_BOTTOM
 ]
 
 //To avoid writing depth-sorting code.
@@ -144,10 +144,6 @@ var ROTATION_SIDE_DRAW_ORDER = [
     [ SIDE_BOTTOM, SIDE_FRONT, SIDE_RIGHT, SIDE_LEFT,  SIDE_BACK,  SIDE_TOP ], //180°
     [ SIDE_BOTTOM, SIDE_RIGHT, SIDE_BACK,  SIDE_FRONT, SIDE_LEFT,  SIDE_TOP ], //270°
 ];
-
-//Valid image MIME types and extensions
-VALID_TYPES      = [ "image/png", "image/jpeg" ];
-VALID_EXTENSIONS = [ "png", "jpg", "jpeg" ];
 
 //Number of array entries per vertex
 var VERTEX_SIZE = 8;
@@ -261,7 +257,7 @@ var draw_order     = ROTATION_SIDE_DRAW_ORDER[0]; //Controls the order the sides
 
 function initWebGL( canvas ) {
     //Create OpenGL context
-    var attr = { preserveDrawingBuffer: true };
+    var attr = { preserveDrawingBuffer: true, antialias: false };
     gl = canvas.getContext( "webgl", attr ) || canvas.getContext( "experimental-webgl", attr );
     if( !gl ) {
         console.error( "Can't init GL context." );
@@ -443,16 +439,16 @@ function initBuffers() {
 //Generate matrices
 function initMatrices() {
     //Create an isometric camera
-    m_world = matrixCopy( identity );
-    m_view  = view_orbit( zero, Math.PI/6, Math.PI/4, 2 );
-    m_proj  = ortho( ortho_width, ortho_width * canvas.height / canvas.width, 0.1, 10 );
+    m_world = matrixCopy( IDENTITY );
+    m_view  = view_orbit( ZERO, Math.PI/6, Math.PI/4, 2 );
+    m_proj  = ortho( ORTHO_WIDTH, ORTHO_WIDTH * canvas.height / canvas.width, 0.1, 10 );
 
     //Multiply the projection matrix and view matrices, then invert them to get a matrix that performs the opposite transformations.
     //Inv( P * V ) = Inv(V) * Inv(P)
     m_invCamera = matrixInvert( matrixMultiply( m_proj, m_view ) );
 
     for( var i = SIDE_FRONT; i <= SIDE_BOTTOM; ++i )
-        m_side[ i ] = matrixCopy( identity );
+        m_side[ i ] = matrixCopy( IDENTITY );
 }
 
 function initPresentation() {
@@ -491,7 +487,7 @@ function initConfiguration() {
     //Set uniforms
     gl.uniformMatrix4fv( u_proj,  false, m_proj   );
     gl.uniformMatrix4fv( u_view,  false, m_view   );
-    gl.uniformMatrix4fv( u_world, false, identity );
+    gl.uniformMatrix4fv( u_world, false, IDENTITY );
     gl.uniform1i( u_sampler, 0 ); //Note: The 0 here means "Texture Unit 0"
     gl.uniform4f( u_color, 1, 1, 1, 1 );
 }
@@ -547,7 +543,6 @@ function setSideTexture( side, texture ) {
 }
 
 //This function is called once per frame to make changes to the world.
-//Changes
 function update() {
     var sideChanged = false;
     for( var i = SIDE_FRONT; i <= SIDE_BOTTOM; ++i ) {
@@ -675,16 +670,9 @@ function getAimLine( x, y ) {
     return line( vecSub( far, near ), near );
 }
 
-function isImage( file ) {
-    return VALID_TYPES.indexOf( file.type ) != -1;
-}
-
-function isImageURL( url ) {
-    var results = url.match( /\.(\w+)$/ );
-    if( results )
-        return VALID_EXTENSIONS.indexOf( results[1].toLowerCase() ) != -1;
-}
-
+//Inspects the given dragdrop event to determine if it is valid (in other words, whether or not our program can utilize the thing being dragged).
+//Returns true if the given object being dragged is a file or image.
+//Returns false otherwise.
 function isDragValid( evt ) {
     var dt = evt.dataTransfer;
     var types = dt.types;
@@ -693,6 +681,10 @@ function isDragValid( evt ) {
     return types.contains( "application/x-moz-file" ) || types.contains( "application/x-moz-nativeimage" );
 }
 
+//Handles dragenter and dragover events on the canvas.
+//Determines the side of the box the mouse is hovering over and highlights it.
+//Returns true if the drag is valid and the highlight side has been set.
+//Returns false otherwise.
 function dragInProgress( evt ) {
     if( !isDragValid( evt ) )
         return false;
@@ -703,10 +695,13 @@ function dragInProgress( evt ) {
     return true;
 }
 
+//Handles dragleave and drop events on the canvas.
 function dragEnded( evt ) {
     setHighlightSide( null );
 }
 
+//Sets up event handlers for the canvas and other controls in the program.
+//Called when the window loads.
 function setupEventHandlers() {
     var canvas = document.getElementById( "canvas" );
 

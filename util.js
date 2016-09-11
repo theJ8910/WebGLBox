@@ -1,6 +1,10 @@
 var TWO_PI  = 2 * Math.PI;
 var HALF_PI = Math.PI / 2;
 
+//Valid image MIME types and extensions
+VALID_TYPES      = [ "image/png", "image/jpeg" ];
+VALID_EXTENSIONS = [ "png", "jpg", "jpeg" ];
+
 //Returns the angular distance between two numbers.
 //Returns a number between -Math.PI and Math.PI.
 function angle_diff( from, to ) {
@@ -37,7 +41,21 @@ function clientToLocal( x, y, element ) {
 //Only positive numbers can be powers of two (e.g. 0 and -2 do not count).
 //Furthermore, this function does not consider negative powers of two (such as 2^(-1) == 0.5) to be powers of two.
 function isPowerOfTwo( x ) {
-    return x > 0 && ( x & ( ~x + 1 ) )
+    return x > 0 && ( x & ( ~x + 1 ) ) == x
+}
+
+//Returns true if the given file is an image.
+//Returns false otherwise.
+function isImage( file ) {
+    return VALID_TYPES.indexOf( file.type ) != -1;
+}
+
+//Returns true if the given URL ends with an image extension (e.g. ".png" in "http://www.whatever.com/something.png").
+//Returns false otherwise.
+function isImageURL( url ) {
+    var results = url.match( /\.(\w+)$/ );
+    if( results )
+        return VALID_EXTENSIONS.indexOf( results[1].toLowerCase() ) != -1;
 }
 
 //Turns the given image into a power of two

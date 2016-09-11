@@ -68,7 +68,7 @@ SideAnimator.prototype.updateMatrix = function() {
     var c = Math.cos( this.angle );
     var s = Math.sin( this.angle );
 
-    var x = east, y = north, z = up;
+    var x = EAST, y = NORTH, z = UP;
     switch( side ) {
     case SIDE_FRONT:
         x = [  c,  0, -s ];

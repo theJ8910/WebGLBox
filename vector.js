@@ -1,10 +1,10 @@
-var east  = [ 1,  0,  0 ];
-var west  = [-1,  0,  0 ];
-var up    = [ 0,  0,  1 ];
-var down  = [ 0,  0, -1 ];
-var north = [ 0,  1,  0 ];
-var south = [ 0, -1,  0 ];
-var zero  = [ 0 , 0,  0 ];
+var EAST  = [ 1,  0,  0 ];
+var WEST  = [-1,  0,  0 ];
+var UP    = [ 0,  0,  1 ];
+var DOWN  = [ 0,  0, -1 ];
+var NORTH = [ 0,  1,  0 ];
+var SOUTH = [ 0, -1,  0 ];
+var ZERO  = [ 0 , 0,  0 ];
 
 function vecAdd( left, right ) {
     return [
