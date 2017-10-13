@@ -678,7 +678,7 @@ function isDragValid( evt ) {
     var types = dt.types;
 
     //Dragged files and images are valid
-    return types.contains( "application/x-moz-file" ) || types.contains( "application/x-moz-nativeimage" );
+    return types.includes( "application/x-moz-file" ) || types.includes( "application/x-moz-nativeimage" );
 }
 
 //Handles dragenter and dragover events on the canvas.
@@ -745,10 +745,10 @@ function setupEventHandlers() {
 
         var dt = evt.dataTransfer;
         var types = dt.types;
-        dragInfo( dt );
+        //dragInfo( dt );
 
         //File
-        if( types.contains( "application/x-moz-file" ) ) {
+        if( types.includes( "application/x-moz-file" ) ) {
             var file = dt.files[0];
             if( isImage( file ) ) {
                 var url = window.URL.createObjectURL( file );
@@ -761,10 +761,10 @@ function setupEventHandlers() {
                 } );
             }
         //Image element
-        } else if( types.contains( "text/x-moz-url-data" ) ) {
+        } else if( types.includes( "text/x-moz-url-data" ) ) {
             //Note: Image element is "application/x-moz-nativeimage"
             var url = dt.getData( "text/x-moz-url-data" );
-            console.log( url );
+            //console.log( url );
             loadTextureFromURL( url, function( texture) {
                 setSideTexture( side, texture );
             } );
