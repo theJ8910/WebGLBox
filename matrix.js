@@ -1,6 +1,6 @@
 //IMPORTANT NOTE:
-//gl.uniformMatrix*fv assumes the data you give it in supplied in column order.
-//There is a "transpose" parameter you can set to true to tell it your data is in row order,
+//gl.uniformMatrix*fv assumes the data you give it in supplied in column-major order.
+//There is a "transpose" parameter you can set to true to tell it your data is in row-major order,
 //but this parameter is useless because the spec requires it to be false.
 //What does this mean? The array:
 //var myData = new Float32Array([
@@ -17,6 +17,40 @@
 //In other words, the resulting matrix is transposed!
 //How stupid is this? This could practically define the phrase "counter-intuitive".
 //Keep this in mind when looking at matrix arrays here!
+//
+//For more information see the following links:
+//https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glUniform.xml
+//https://en.wikipedia.org/wiki/Row-_and_column-major_order
+//
+//Other notes:
+//Row vectors and column vectors are two ways of representing the same vector as a matrix.
+//Take the 4D vector <1, 2, 3, 1> for instance.
+//When written as a row vector (a 4x1 matrix) it looks like this:
+// | 1 2 3 1 |
+//when written as a column vector (a 1x4 matrix) it looks like this:
+// | 1 |
+// | 2 |
+// | 3 |
+// | 1 |
+//
+//My code uses column vectors as suggested by the OpenGL specification.
+//Either choice is fine - mathematically speaking you'll arrive at the same values regardless of your choice.
+//However, because row and column vectors are transposes of one another, your choice will also decide the ordering of
+//the values within the matrices you'll be using and the order of your matrix multiplications.
+//If using row vectors, your transformations will take place left-to-right (e.g.: vector * world * view * projection),
+//and your matrices will be arranged like so, where x, y, and z are your basis vectors and p is your translation:
+//| x.x x.y x.z 0   |
+//| y.x y.y y.z 0   |
+//| z.x z.y z.z 0   |
+//| p.x p.y p.z 1   |
+//If using column vectors, your transformations will take place right-to-left (e.g.: projection * view * world * vector), and your matrices will be arranged like so:
+//| x.x y.x z.x p.x |
+//| x.y y.y z.y p.y |
+//| x.z y.z z.z p.z |
+//| 0   0   0   1   |
+//
+//For more information see the following link:
+//https://en.wikipedia.org/wiki/Row_and_column_vectors
 
 //4x4 identity matrix
 var IDENTITY = new Float32Array([
@@ -29,10 +63,10 @@ var IDENTITY = new Float32Array([
 //World matrix
 function world( x, y, z, p ) {
     /*
-    | a b c 0 | |x| a = x.x  b = y.x  c = z.x
-    | d e f 0 | |y| d = x.y  e = y.y  f = z.y
-    | g h i 0 | |z| g = x.z  h = y.z  i = z.z
-    | 0 0 0 1 | |1|
+    | a b c x | a = x.x  b = y.x  c = z.x  x = p.x
+    | d e f y | d = x.y  e = y.y  f = z.y  y = p.y
+    | g h i z | g = x.z  h = y.z  i = z.z  z = p.z
+    | 0 0 0 1 |
     */
     return new Float32Array([
         x[0], x[1], x[2], 0,

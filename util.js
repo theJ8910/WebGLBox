@@ -32,8 +32,8 @@ function wrap( x, b ) {
 function clientToLocal( x, y, element ) {
     var r = element.getBoundingClientRect();
     return [
-        x - r.left + window.scrollX,
-        y - r.top  + window.scrollY
+        x - r.left,
+        y - r.top
     ];
 }
 

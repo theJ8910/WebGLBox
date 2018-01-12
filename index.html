@@ -56,21 +56,31 @@ attribute vec2 a_uv;     //Texture coordinates
 uniform mat4 u_world;    //World matrix (model space -> world space)
 uniform mat4 u_view;     //View matrix (world space -> view space)
 uniform mat4 u_proj;     //Projection matrix (view space -> clip space)
+uniform vec4 u_color;    //Colorization
 
 varying vec3 v_pos;      //Vertex position in world space
-varying vec3 v_normal;   //Vertex normal in world space
 varying vec2 v_uv;       //Texture coordinates (to pass to fragment shader)
+varying vec4 v_color;    //Partial color information (lighting, colorization, etc)
+
+//Directional lights directions, stored as unit vectors pointing the opposite direction the light shines.
+const vec3 c_dl1_dir = normalize( vec3(  0.7, -0.2, 1 ) );
+const vec3 c_dl2_dir = normalize( vec3( -0.7,  0.2, 1 ) );
+const vec3 c_dl_col  = vec3( 0.6, 0.6, 0.6 );   //Directional light color (same for both lights)
+const vec3 c_al_col  = vec3( 0.4, 0.4, 0.4 );   //Ambient light color
 
 void main() {
-    //World-space vertex position expressed with homogenous coordinates
-    vec4 world_pos = u_world * vec4( a_pos, 1.0 );
-
-    v_pos = world_pos.xyz;
-    v_uv  = a_uv;
-
+    //Transform vertex normals to world space
     //Note: We convert the world matrix to mat3() to discard the translation
-    v_normal = normalize( mat3( u_world ) * a_normal );
-    gl_Position = u_proj * u_view * world_pos;
+    vec3 normal_ws = normalize( mat3( u_world ) * a_normal );
+
+    v_uv  = a_uv;
+    v_color = u_color * vec4( c_al_col + (
+        max( 0.0, dot( normal_ws, c_dl1_dir ) ) +
+        max( 0.0, dot( normal_ws, c_dl2_dir ) )
+    ) * c_dl_col, 1.0 );
+
+    //Note: vec4() is here to convert position to homogenous coordinates; matrices are 4x4
+    gl_Position = u_proj * u_view * u_world * vec4( a_pos, 1.0 );
 }
 </script>
 
@@ -79,36 +89,13 @@ void main() {
 precision mediump float;
 
 uniform sampler2D u_sampler;
-uniform vec4      u_color;
 
 varying vec3 v_pos;
-varying vec3 v_normal;
 varying vec2 v_uv;
-
-const vec3 c_east  = vec3( 1, 0, 0 );
-const vec3 c_north = vec3( 0, 1, 0 );
-const vec3 c_up    = vec3( 0, 0, 1 );
-const vec4 c_white = vec4( 1, 1, 1, 1 );
+varying vec4 v_color;
 
 void main() {
-    //gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 );
-    // 0 < (x + 1) / 2 < 1
-    //gl_FragColor = vec4( clamp( v_normal.x, 0.0, 1.0 ), clamp( v_normal.y, 0.0, 1.0 ), clamp( v_normal.z, 0.0, 1.0 ), 1.0 );
-    //gl_FragColor = vec4( (v_normal.x + 1.0) / 2.0, (v_normal.y + 1.0) / 2.0, (v_normal.z + 1.0) / 2.0, 1.0 );
-    //gl_FragColor = vec4( gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0 );
-
-    //Source: 99, 99, 99
-    //Top:    94, 94, 94
-    //East:   63, 63, 63
-    //North:  42, 42, 42
-    float f;
-    if(      dot( v_normal, c_north ) > 0.707 ) { f = 0.42424242; }
-    else if( dot( v_normal, c_east  ) > 0.707 ) { f = 0.63636364; }
-    else if( dot( v_normal, c_up    ) > 0.707 ) { f = 0.94949495; }
-    else                                        { f = 1.0;        }
-
-    vec4 texel = texture2D( u_sampler, v_uv );
-    gl_FragColor = vec4( f * texel.rgb, texel.a ) - ( c_white - u_color );
+    gl_FragColor = v_color * texture2D( u_sampler, v_uv );
 }
 </script>
 
@@ -135,7 +122,7 @@ var SIDE_DIRECTION = [
     WEST,  //SIDE_LEFT
     UP,    //SIDE_TOP
     DOWN,  //SIDE_BOTTOM
-]
+];
 
 //To avoid writing depth-sorting code.
 var ROTATION_SIDE_DRAW_ORDER = [
@@ -465,7 +452,6 @@ function initPresentation() {
 //One time WebGL configuration
 function initConfiguration() {
     //Set clear color (black, 0% opacity) & depth
-    //gl.clearColor( 1, 0.75, 0, 1 );
     gl.clearColor( 0, 0, 0, 0 );
     gl.clearDepth( 1.0 );
 
@@ -475,7 +461,6 @@ function initConfiguration() {
 
     //Texture unit 0 is always the active unit
     gl.activeTexture( gl.TEXTURE0 );
-    //gl.bindTexture( gl.TEXTURE_2D, t_default );
 
     //Blending functions
     gl.blendEquation( gl.FUNC_ADD );
@@ -587,7 +572,6 @@ function update() {
         m_world[4] = -s;
         m_world[5] =  c;
 
-        //m_world = world( [c,s,0], [-s,c,0], up, zero );
         rerender();
     }
 
@@ -601,9 +585,6 @@ function renderScene() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     //Set program & uniforms
-    //gl.uniformMatrix4fv( u_world, false, m_world );
-
-    //gl.drawElements( gl.TRIANGLES, Math.floor( indices.length / 3 ) * 3, gl.UNSIGNED_SHORT, 0 );
     for( var s = 0; s < 6; ++s ) {
         var i = draw_order[ s ];
         if( highlight_side == i ) { gl.uniform4f( u_color, 0, 1, 0, 1 ); }
@@ -745,7 +726,6 @@ function setupEventHandlers() {
 
         var dt = evt.dataTransfer;
         var types = dt.types;
-        //dragInfo( dt );
 
         //File
         if( types.includes( "application/x-moz-file" ) ) {
@@ -764,7 +744,6 @@ function setupEventHandlers() {
         } else if( types.includes( "text/x-moz-url-data" ) ) {
             //Note: Image element is "application/x-moz-nativeimage"
             var url = dt.getData( "text/x-moz-url-data" );
-            //console.log( url );
             loadTextureFromURL( url, function( texture) {
                 setSideTexture( side, texture );
             } );
