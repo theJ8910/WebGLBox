@@ -1,9 +1,12 @@
+"use strict";
+
 //Returns a line object.
-//normal should be a vector in the direction of the line.
+//dir should be a unit vector in the direction of the line.
 //pt should be a point on the line.
 function line( dir, pt ) {
     return {
-        d: dir, p: pt
+        d: dir,
+        p: pt
     };
 }
 
@@ -57,28 +60,27 @@ function rect_plane( rect ) {
 //Returns null if the line is parallel to the plane.
 function line_plane_intersect( line, plane ) {
     //Dot product between the normal of the plane and the direction vector of the line.
-    var dot = vecDot( plane.n, line.d );
+    const dot = vecDot( plane.n, line.d );
 
     //Plane and line are parallel; this either means the line is on the plane (and therefore the entire line intersects),
     //or the line is NOT on the plane and never intersects it. This function returns a point, so either of these cases are regarded as failures.
-    if( dot == 0 )
+    if( dot === 0 )
         return null;
 
-    var t = -( vecDot( plane.n, line.p ) + plane.d ) / dot;
-    return t;
+    return -( vecDot( plane.n, line.p ) + plane.d ) / dot;
 }
 
 //Returns true if the given point is contained on the surface of the given rectangle.
 function rect_contains( rect, pt ) {
-    var pr = vecSub( pt, rect.p ); //pt's location relative to b
-    var x  = rect.x;
-    var y  = rect.y;
+    const pr = vecSub( pt, rect.p ); //pt's location relative to b
+    const x  = rect.x;
+    const y  = rect.y;
     
     //Note: dot(a,b) = |a||b|cos(t)
-    var xCoord = vecDot( pr, x ); //"x coordinate" of the point on the rectangle; if on the rectangle between 0 and |bToC|^2
+    const xCoord = vecDot( pr, x ); //"x coordinate" of the point on the rectangle; if on the rectangle between 0 and |bToC|^2
     if( xCoord < 0 || xCoord > vecSqLength( x ) )
         return false;
-    var yCoord = vecDot( pr, y ); //"y coordinate" of the point on the rectangle; ranges between 0 and |bToA|^2
+    const yCoord = vecDot( pr, y ); //"y coordinate" of the point on the rectangle; ranges between 0 and |bToA|^2
     if( yCoord < 0 || yCoord > vecSqLength( y ) )
         return false;
     return true;

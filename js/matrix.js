@@ -1,14 +1,16 @@
+"use strict";
+
 //IMPORTANT NOTE:
 //gl.uniformMatrix*fv assumes the data you give it in supplied in column-major order.
 //There is a "transpose" parameter you can set to true to tell it your data is in row-major order,
 //but this parameter is useless because the spec requires it to be false.
 //What does this mean? The array:
-//var myData = new Float32Array([
+//const myData = Float32Array.of(
 //     0, 1, 2, 3,
 //     4, 5, 6, 7,
 //     8, 9,10,11,
 //    12,13,14,15
-//]);
+//);
 //...becomes the following matrix:
 //| 0 4  8 12 |
 //| 1 5  9 13 |
@@ -53,12 +55,12 @@
 //https://en.wikipedia.org/wiki/Row_and_column_vectors
 
 //4x4 identity matrix
-var IDENTITY = new Float32Array([
+const IDENTITY = Float32Array.of(
     1, 0, 0, 0,
     0, 1, 0, 0,
     0, 0, 1, 0,
     0, 0, 0, 1
-]);
+);
 
 //World matrix
 function world( x, y, z, p ) {
@@ -68,12 +70,12 @@ function world( x, y, z, p ) {
     | g h i z | g = x.z  h = y.z  i = z.z  z = p.z
     | 0 0 0 1 |
     */
-    return new Float32Array([
+    return Float32Array.of(
         x[0], x[1], x[2], 0,
         y[0], y[1], y[2], 0,
         z[0], z[1], z[2], 0,
         p[0], p[1], p[2], 1
-    ]);
+    );
 }
 
 //Builds a view matrix from vectors describing the viewer's position and orientation.
@@ -103,23 +105,23 @@ function view( f, r, u, p ) {
     2 6 10 14
     3 7 11 15
     */
-    var tx = -r[0]*p[0] - r[1]*p[1] - r[2]*p[2];
-    var ty = -u[0]*p[0] - u[1]*p[1] - u[2]*p[2];
-    var tz = -f[0]*p[0] - f[1]*p[1] - f[2]*p[2];
-    return new Float32Array([
+    const tx = -r[0]*p[0] - r[1]*p[1] - r[2]*p[2];
+    const ty = -u[0]*p[0] - u[1]*p[1] - u[2]*p[2];
+    const tz = -f[0]*p[0] - f[1]*p[1] - f[2]*p[2];
+    return Float32Array.of(
         r[0],  u[0],  f[0], 0,
         r[1],  u[1],  f[1], 0,
         r[2],  u[2],  f[2], 0,
         tx,    ty,    tz,   1
-    ]);
+    );
 }
 
 //Returns a view matrix where the viewer is positioned at "from", looking at "to".
 //The viewer is oriented such that his "up" is as close as possible to the given "up" vector.
 function view_lookat( from, to, up ) {
-    var fwd   = vecNormalize( vecSub( to, from ) );
-    var up_r  = vecNormalize( vecProject( up, fwd ) );
-    var right = vecCross( fwd, up_r );
+    const fwd   = vecNormalize( vecSub( to, from ) );
+    const up_r  = vecNormalize( vecProject( up, fwd ) );
+    const right = vecCross( fwd, up_r );
 
     return view( fwd, right, up_r, from );
 }
@@ -128,34 +130,34 @@ function view_lookat( from, to, up ) {
 //A pitch of 0 places the viewer in the X/Y plane. A pitch of Math.PI/2 places the viewer on the Z axis.
 //If pitch is 0, a yaw of 0 places the viewer on the +X axis. A yaw of Math.PI/2 places the viewer on the +Y axis.
 function view_orbit( pt, pitch, yaw, distance ) {
-    var c = Math.cos( pitch );
-    var s = Math.sin( pitch );
+    const c = Math.cos( pitch );
+    const s = Math.sin( pitch );
 
-    var c2 = Math.cos( yaw );
-    var s2 = Math.sin( yaw );
+    const c2 = Math.cos( yaw );
+    const s2 = Math.sin( yaw );
 
     //fwd faces towards the point.
-    var fwd   = [ -c2*c, -s2*c, -s ];
+    const fwd   = [ -c2*c, -s2*c, -s ];
     //A vector as close to "up" as possible while still being at a 90 degree angle to fwd. It's a "relative up".
-    var up_r  = vecNormalize( vecProject( UP, fwd ) );
+    const up_r  = vecNormalize( vecProject( UP, fwd ) );
     //At a 90 degree angle to both fwd and up.
-    var right = vecCross( fwd, up_r );
+    const right = vecCross( fwd, up_r );
     //We move in the direction opposite of fwd, by "distance" units.
-    var viewer_pos = vecSub( pt, vecMul( distance, fwd ) );
+    const viewer_pos = vecSub( pt, vecMul( distance, fwd ) );
 
     return view( fwd, right, up_r, viewer_pos );
 }
 
 //Centered orthographic projection
 function ortho( w, h, n, f ) {
-    var zOff = f - n;
+    const zOff = f - n;
 
-    return new Float32Array([
+    return Float32Array.of(
         2/w, 0,   0,               0,
         0,   2/h, 0,               0,
         0,   0,   2/zOff,          0,
         0,   0,   -(f + n) / zOff, 1
-    ]);
+    );
 }
 
 //Off-center orthographic projection
@@ -163,15 +165,15 @@ function ortho_oc( l, r, b, t, n, f ) {
     //-1 < 2x / (r - l) - (r + l) / (r - l) < 1
     //-1 < 2x / (t - b) - (t + b) / (t - b) < 1
     //-1 < 2x / (f - n) - (f + n) / (f - n) < 1
-    var xOff = r - l;
-    var yOff = t - b;
-    var zOff = f - n;
-    return new Float32Array([
+    const xOff = r - l;
+    const yOff = t - b;
+    const zOff = f - n;
+    return Float32Array.of(
         2/xOff,           0,                0,               0,
         0,                2/yOff,           0,               0,
         0,                0,                2/zOff,          0,
         -(r + l) / xOff,  -(t + b) / yOff,  -(f + n) / zOff, 1
-    ]);
+    );
 }
 
 //Performs matrix * vec.
@@ -182,7 +184,7 @@ function ortho_oc( l, r, b, t, n, f ) {
 //After transformation, the vector is then implicitly converted from homogenous coordinates (4D) back to cartesian coordinates (3D) and returned.
 function transform( matrix, vec ) {
     //Homogenous W. To convert from homogenous to cartesian coordinates, we divide each coordinate by this and drop the W.
-    var w = matrix[3]*vec[0] + matrix[7]*vec[1] + matrix[11]*vec[2] + matrix[15];
+    const w = matrix[3]*vec[0] + matrix[7]*vec[1] + matrix[11]*vec[2] + matrix[15];
     return [
         ( matrix[0]*vec[0] + matrix[4]*vec[1] + matrix[ 8]*vec[2] + matrix[12] ) / w,
         ( matrix[1]*vec[0] + matrix[5]*vec[1] + matrix[ 9]*vec[2] + matrix[13] ) / w,
@@ -192,12 +194,12 @@ function transform( matrix, vec ) {
 
 //Returns a copy of the given matrix.
 function matrixCopy( mat ) {
-    return new Float32Array([
+    return Float32Array.of(
         mat[ 0], mat[ 1], mat[ 2], mat[ 3],
         mat[ 4], mat[ 5], mat[ 6], mat[ 7],
         mat[ 8], mat[ 9], mat[10], mat[11],
         mat[12], mat[13], mat[14], mat[15]
-    ]);
+    );
 }
 
 //Multiplies the 4x4 matrix left with the 4x4 matrix right.
@@ -208,7 +210,7 @@ function matrixMultiply( left, right ) {
      2 6 10 14
      3 7 11 15
     */
-    return new Float32Array([
+    return Float32Array.of(
         left[0] * right[ 0] + left[4] * right[ 1] + left[ 8] * right[ 2] + left[12] * right[ 3], //0  = left.row_0 * right.column_0
         left[1] * right[ 0] + left[5] * right[ 1] + left[ 9] * right[ 2] + left[13] * right[ 3], //1  = left.row_1 * right.column_0
         left[2] * right[ 0] + left[6] * right[ 1] + left[10] * right[ 2] + left[14] * right[ 3], //2  = left.row_2 * right.column_0
@@ -228,7 +230,7 @@ function matrixMultiply( left, right ) {
         left[1] * right[12] + left[5] * right[13] + left[ 9] * right[14] + left[13] * right[15], //13 = left.row_1 * right.column_3
         left[2] * right[12] + left[6] * right[13] + left[10] * right[14] + left[14] * right[15], //14 = left.row_2 * right.column_3
         left[3] * right[12] + left[7] * right[13] + left[11] * right[14] + left[15] * right[15], //15 = left.row_3 * right.column_3
-    ]);
+    );
 }
 
 //Returns the inverse of the given 4x4 matrix, or null if the matrix is not invertible.
@@ -239,42 +241,42 @@ function matrixInvert( mat ) {
      2 6 10 14
      3 7 11 15
     */
-    var _00 = mat[0], _01 = mat[4], _02 = mat[ 8], _03 = mat[12];
-    var _10 = mat[1], _11 = mat[5], _12 = mat[ 9], _13 = mat[13];
-    var _20 = mat[2], _21 = mat[6], _22 = mat[10], _23 = mat[14];
-    var _30 = mat[3], _31 = mat[7], _32 = mat[11], _33 = mat[15];
+    const _00 = mat[0], _01 = mat[4], _02 = mat[ 8], _03 = mat[12];
+    const _10 = mat[1], _11 = mat[5], _12 = mat[ 9], _13 = mat[13];
+    const _20 = mat[2], _21 = mat[6], _22 = mat[10], _23 = mat[14];
+    const _30 = mat[3], _31 = mat[7], _32 = mat[11], _33 = mat[15];
     
-    var m1 = _22 * _33 - _23 * _32;
-    var m2 = _21 * _33 - _23 * _31;
-    var m3 = _21 * _32 - _22 * _31;
-    var m4 = _20 * _33 - _23 * _30;
-    var m5 = _20 * _32 - _22 * _30;
-    var m6 = _20 * _31 - _21 * _30;
+    const m1 = _22 * _33 - _23 * _32;
+    const m2 = _21 * _33 - _23 * _31;
+    const m3 = _21 * _32 - _22 * _31;
+    const m4 = _20 * _33 - _23 * _30;
+    const m5 = _20 * _32 - _22 * _30;
+    const m6 = _20 * _31 - _21 * _30;
 
-    var c00 = _11 * m1 - _12 * m2 + _13 * m3;
-    var c01 = _12 * m4 - _13 * m5 - _10 * m1;
-    var c02 = _10 * m2 - _11 * m4 + _13 * m6;
-    var c03 = _11 * m5 - _12 * m6 - _10 * m3;
+    const c00 = _11 * m1 - _12 * m2 + _13 * m3;
+    const c01 = _12 * m4 - _13 * m5 - _10 * m1;
+    const c02 = _10 * m2 - _11 * m4 + _13 * m6;
+    const c03 = _11 * m5 - _12 * m6 - _10 * m3;
 
-    var det = _00 * c00 + _01 * c01 + _02 * c02 + _03 * c03;
+    const det = _00 * c00 + _01 * c01 + _02 * c02 + _03 * c03;
 
     if( det == 0 )
         return null;
 
-    var m7  = _12 * _33 - _13 * _32;
-    var m8  = _11 * _33 - _13 * _31;
-    var m9  = _11 * _32 - _12 * _31;
-    var m10 = _10 * _33 - _13 * _30;
-    var m11 = _10 * _32 - _12 * _30;
-    var m12 = _10 * _31 - _11 * _30;
-    var m13 = _12 * _23 - _13 * _22;
-    var m14 = _11 * _23 - _13 * _21;
-    var m15 = _11 * _22 - _12 * _21;
-    var m16 = _10 * _23 - _13 * _20;
-    var m17 = _10 * _22 - _12 * _20;
-    var m18 = _10 * _21 - _11 * _20;
+    const m7  = _12 * _33 - _13 * _32;
+    const m8  = _11 * _33 - _13 * _31;
+    const m9  = _11 * _32 - _12 * _31;
+    const m10 = _10 * _33 - _13 * _30;
+    const m11 = _10 * _32 - _12 * _30;
+    const m12 = _10 * _31 - _11 * _30;
+    const m13 = _12 * _23 - _13 * _22;
+    const m14 = _11 * _23 - _13 * _21;
+    const m15 = _11 * _22 - _12 * _21;
+    const m16 = _10 * _23 - _13 * _20;
+    const m17 = _10 * _22 - _12 * _20;
+    const m18 = _10 * _21 - _11 * _20;
 
-    return new Float32Array([
+    return Float32Array.of(
         c00 / det,                                   //_00
         c01 / det,                                   //_10
         c02 / det,                                   //_20
@@ -294,7 +296,7 @@ function matrixInvert( mat ) {
         ( _00 * m13 - _02 * m16 + _03 * m17 ) / det, //_13
         ( _01 * m16 - _00 * m14 - _03 * m18 ) / det, //_23
         ( _00 * m15 - _01 * m17 + _02 * m18 ) / det  //_33
-    ]);
+    );
 }
 
 //Returns a string with each of the matrix's components, organized into rows and columns

@@ -1,10 +1,12 @@
-var EAST  = [ 1,  0,  0 ];
-var WEST  = [-1,  0,  0 ];
-var UP    = [ 0,  0,  1 ];
-var DOWN  = [ 0,  0, -1 ];
-var NORTH = [ 0,  1,  0 ];
-var SOUTH = [ 0, -1,  0 ];
-var ZERO  = [ 0 , 0,  0 ];
+"use strict";
+
+const EAST  = [ 1,  0,  0 ];
+const WEST  = [-1,  0,  0 ];
+const UP    = [ 0,  0,  1 ];
+const DOWN  = [ 0,  0, -1 ];
+const NORTH = [ 0,  1,  0 ];
+const SOUTH = [ 0, -1,  0 ];
+const ZERO  = [ 0 , 0,  0 ];
 
 function vecAdd( left, right ) {
     return [
@@ -33,18 +35,24 @@ function vecMul( scalar, vec ) {
 }
 
 function vecSqLength( vec ) {
-    return vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2];
+    return vec[0] * vec[0] +
+           vec[1] * vec[1] +
+           vec[2] * vec[2];
 }
 
 //Returns how long the given vector is in units.
 function vecLength( vec ) {
-    return Math.sqrt( vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2] );
+    return Math.sqrt(
+        vec[0] * vec[0] +
+        vec[1] * vec[1] +
+        vec[2] * vec[2]
+    );
 }
 
 //Returns a vector with the same direction as the given vector, but a length of 1.
 function vecNormalize( vec ) {
-    var d = vecLength( vec );
-    if( d == 0 )
+    const d = vecLength( vec );
+    if( d === 0 )
         return [ 1, 0, 0 ];
 
     return [
@@ -56,7 +64,9 @@ function vecNormalize( vec ) {
 
 //Returns the dot product between the two given vectors
 function vecDot( left, right ) {
-    return left[0]*right[0] + left[1]*right[1] + left[2]*right[2];
+    return left[0] * right[0] +
+           left[1] * right[1] +
+           left[2] * right[2];
 }
 
 //Returns the cross product between the two given vectors

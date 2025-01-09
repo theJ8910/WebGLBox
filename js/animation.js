@@ -1,10 +1,14 @@
-//Animation related
-var FRAMETIME               = 1 / 60; //Number of seconds one frame takes
-var ROTATE_SPEED            = TWO_PI; //How fast the cube (or one of its sides) rotates (360 degrees / sec)
-var SIDE_TRANSLATE_DISTANCE = 0.3;
-var SIDE_TRANSLATE_DELTA    = FRAMETIME * 4 * SIDE_TRANSLATE_DISTANCE;
+"use strict";
 
-function SideAnimator( side ) {
+//Animation related
+const FRAMETIME               = 1 / 60; //Number of seconds one frame takes
+const ROTATE_SPEED            = TWO_PI; //How fast the cube (or one of its sides) rotates (360 degrees / sec)
+const SIDE_TRANSLATE_DISTANCE = 0.3;
+const SIDE_TRANSLATE_DELTA    = FRAMETIME * 4 * SIDE_TRANSLATE_DISTANCE;
+
+class SideAnimator {
+
+constructor( side ) {
     this.side       = side;
     this.angle      = 0;
     this.angleIdeal = 0;
@@ -15,17 +19,19 @@ function SideAnimator( side ) {
     this.state      = 0;
 }
 
-SideAnimator.prototype.rotate = function( amt ) {
+rotate( amt ) {
     this.angleIdeal = HALF_PI * Math.round( ( this.angleIdeal + amt ) / HALF_PI );
     this.angleDelta = FRAMETIME * ROTATE_SPEED * Math.sign( this.angleIdeal - this.angle );
-    if( this.state != 1 || this.state != 2 )
+    if( this.state !== 1 || this.state !== 2 )
         this.state = 1;
 }
 
-SideAnimator.prototype.update = function() {
+update() {
+    let newPosOrAngle;
     switch( this.state ) {
     case 1:
-        var newPos = this.translate + SIDE_TRANSLATE_DELTA;
+        //Position
+        newPosOrAngle = this.translate + SIDE_TRANSLATE_DELTA;
         if( newPos < SIDE_TRANSLATE_DISTANCE )
             this.translate = newPos;
         else {
@@ -36,9 +42,10 @@ SideAnimator.prototype.update = function() {
         return true;
     break;
     case 2:
-        var newAngle = this.angle + this.angleDelta;
-        var sign = Math.sign( this.angleDelta );
-        if( sign * newAngle < sign*this.angleIdeal ) {
+        //Angle
+        newPosOrAngle = this.angle + this.angleDelta;
+        const sign = Math.sign( this.angleDelta );
+        if( sign * newAngle < sign * this.angleIdeal ) {
             this.angle = newAngle;
         } else {
             this.angle = wrap( this.angleIdeal, TWO_PI );
@@ -49,7 +56,8 @@ SideAnimator.prototype.update = function() {
         return true;
     break;
     case 3:
-        var newPos = this.translate - SIDE_TRANSLATE_DELTA;
+        //Position
+        newPosOrAngle = this.translate - SIDE_TRANSLATE_DELTA;
         if( newPos > 0 )
             this.translate = newPos;
         else {
@@ -63,12 +71,12 @@ SideAnimator.prototype.update = function() {
     return false;
 }
 
-SideAnimator.prototype.updateMatrix = function() {
-    var side = this.side;
-    var c = Math.cos( this.angle );
-    var s = Math.sin( this.angle );
+updateMatrix() {
+    const side = this.side;
+    const c = Math.cos( this.angle );
+    const s = Math.sin( this.angle );
 
-    var x = EAST, y = NORTH, z = UP;
+    let x = EAST, y = NORTH, z = UP;
     switch( side ) {
     case SIDE_FRONT:
         x = [  c,  0, -s ];
@@ -96,4 +104,6 @@ SideAnimator.prototype.updateMatrix = function() {
     break;
     }
     m_side[ side ] = world( x, y, z, vecMul( this.translate, SIDE_DIRECTION[ side ] ) );
+}
+
 }

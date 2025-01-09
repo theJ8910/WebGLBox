@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Not Aligned</title>
+<meta charset="UTF-8"/>
+<link rel="stylesheet" type="text/css" href="main.css" />
+
+<script type="text/javascript" src="js/graphics.js"></script>
+<script type="text/javascript" src="js/util.js"></script>
+
+<!-- Vertex Shader -->
+<script id="vertex" type="x-shader/x-vertex">
+attribute vec3 a_pos;    //Position in model space
+attribute vec2 a_uv;     //Texture coordinates
+
+varying vec3 v_pos;      //Vertex position in world space
+varying vec2 v_uv;       //Texture coordinates (to pass to fragment shader)
+
+uniform mat2 u_rotate;   //Rotation matrix
+
+void main() {
+    v_uv = a_uv;
+    
+    //gl_Position = vec4( a_pos, 1.0 );
+    gl_Position.xy = u_rotate * a_pos.xy;
+    gl_Position.zw = vec2( a_pos.z, 1.0 );
+}
+</script>
+
+<!-- Fragment shader -->
+<script id="fragment" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D u_sampler;
+varying vec2 v_uv;
+
+void main() {
+    gl_FragColor = texture2D( u_sampler, v_uv );
+}
+</script>
+
+<!-- Program -->
+<script type="text/javascript">
+//Number of seconds one frame takes
+var FRAMETIME = 1 / 60;
+
+//Number of array entries per vertex
+var VERTEX_SIZE = 5;
+
+var MAT2D_IDENT = Float32Array.of(
+    1, 0,
+    0, 1
+);
+
+//Vertices
+var pos = Float32Array.of(
+    //pX  pY  pZ   u  v
+    -0.5, -0.5, 0, 0, 1, // 0
+     0.5, -0.5, 0, 1, 1, // 1
+     0.5,  0.5, 0, 1, 0, // 2
+    -0.5,  0.5, 0, 0, 0, // 3
+
+    -1,   -1,   0, 0, 2, // 4
+     1,   -1,   0, 2, 2, // 5
+     1,    1,   0, 2, 0, // 6
+    -1,    1,   0, 0, 0  // 7
+);
+
+//Indices
+var indices = Uint16Array.of(
+     0,  1,  2,  2,  3,  0,
+     4,  5,  6,  6,  7,  4
+);
+
+
+
+
+//GLOBALS
+var canvas    = null;
+var gl        = null;
+var program   = null;
+var angle     = 0;
+var mat2DRot  = Float32Array.of(
+    1, 0,
+    0, 1
+);
+
+//Attribute locations
+var a_pos     = null;
+var a_uv      = null;
+
+//Uniform locations
+var u_sampler = null;
+var u_rotate  = null;
+
+//Buffers
+var b_pos     = null;
+var b_indices = null;
+
+//Textures
+var t_nextID  = -1;
+var t_default = null;
+var t_bg      = null;
+
+function initShaders() {
+    //Load + compile shaders
+    var vertexShader   = loadShader( "vertex" );
+    if( vertexShader == null )
+        return false;
+
+    var fragmentShader = loadShader( "fragment" );
+    if( fragmentShader == null )
+        return false;
+
+    //Link shaders
+    program = gl.createProgram();
+    gl.attachShader( program, vertexShader );
+    gl.attachShader( program, fragmentShader );
+    gl.linkProgram( program );
+    if( !gl.getProgramParameter( program, gl.LINK_STATUS ) ) {
+        console.error( "Creating the shader program failed." );
+        return false;
+    }
+
+    //Lookup attributes
+    a_pos    = lookupAttrib( program, "a_pos"    );    
+    a_uv     = lookupAttrib( program, "a_uv"     );
+
+    //Lookup uniforms
+    u_sampler = lookupUniform( program, "u_sampler" );
+    u_rotate  = lookupUniform( program, "u_rotate" );
+
+    //Assert all of them were found
+    if( a_pos == null || a_uv == null || u_sampler == null || u_rotate == null )
+        return false;
+
+    return true;
+}
+
+function initBuffers() {
+    //Create buffers
+    b_pos = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, b_pos );
+    gl.bufferData( gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW );
+
+    b_indices = gl.createBuffer();
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, b_indices );
+    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW );
+
+    //Describe how the vertex attributes are laid out within the buffer
+    //0  4  8  12 16
+    //px py pz u  v
+
+    var stride = 5*4; //5 floats, 4 bytes each
+    gl.vertexAttribPointer( a_pos,    3, gl.FLOAT, false, stride, 0   );
+    gl.vertexAttribPointer( a_uv,     2, gl.FLOAT, false, stride, 3*4 ); //offset of 3 floats
+}
+
+//One time WebGL configuration
+function initConfiguration() {
+    //Set clear color (black, 0% opacity) & depth
+    gl.clearColor( 0, 0, 0, 0 );
+    gl.clearDepth( 1.0 );
+
+    //Enable depth test
+    gl.enable( gl.DEPTH_TEST );
+    gl.depthFunc( gl.LEQUAL );
+
+    //Texture unit 0 is always the active unit
+    gl.activeTexture( gl.TEXTURE0 );
+
+    //Blending functions
+    gl.blendEquation( gl.FUNC_ADD );
+    gl.blendFuncSeparate( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA );
+
+    //Start using the program
+    gl.useProgram( program );
+
+    //Set uniforms
+    gl.uniform1i( u_sampler, 0 ); //Note: The 0 here means "Texture Unit 0"
+    gl.uniformMatrix2fv( u_rotate, false, [1,0,0,1] );
+}
+
+//Render the face
+function renderScene() {
+    //Clear screen
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+    gl.bindTexture( gl.TEXTURE_2D, t_bg.t );
+    gl.uniformMatrix2fv( u_rotate, false, MAT2D_IDENT );
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 12 ); //note: 6 = number of vertices per cube side; 12 = number of bytes per cube side
+    
+    gl.bindTexture( gl.TEXTURE_2D, t_default.t );
+    gl.uniformMatrix2fv( u_rotate, false, mat2DRot );
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+}
+
+function update() {
+    angle = wrap( angle + HALF_PI * FRAMETIME, TWO_PI );
+    var s = Math.sin( angle );
+    var c = Math.cos( angle );
+    mat2DRot[0] =  c;
+    mat2DRot[1] =  s;
+    mat2DRot[2] = -s;
+    mat2DRot[3] =  c;
+    renderScene();
+}
+
+var loadcounter = 0;
+function ready( name, texture ) {
+    if( name === 't_default' )
+        t_default = texture;
+    else if( name === 't_bg' )
+        t_bg = texture;
+    
+    if( (++loadcounter) !== 2 )
+        return;
+
+    gl.bindTexture( gl.TEXTURE_2D, t_bg.t );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT );
+    gl.bindTexture( gl.TEXTURE_2D, null );
+
+    renderScene();
+    setInterval( update, 1000 * FRAMETIME );
+}
+
+window.addEventListener( "load", function( event ) {
+    initWebGL( document.getElementById( "canvas" ) );
+    initShaders();
+    initBuffers();
+    initConfiguration();
+    
+    loadTextureFromURL( "img/default.png",     ready.bind( null, 't_default' ) );
+    loadTextureFromURL( "img/test/pusher.png", ready.bind( null, 't_bg'      ) );
+} );
+</script>
+
+</head>
+<body>
+<canvas id="canvas" width="640" height="640"> </canvas>
+</body>
+</html>
