@@ -32,8 +32,8 @@ update() {
     case 1:
         //Position
         newPosOrAngle = this.translate + SIDE_TRANSLATE_DELTA;
-        if( newPos < SIDE_TRANSLATE_DISTANCE )
-            this.translate = newPos;
+        if( newPosOrAngle < SIDE_TRANSLATE_DISTANCE )
+            this.translate = newPosOrAngle;
         else {
             this.translate = SIDE_TRANSLATE_DISTANCE;
             this.state     = 2;
@@ -58,8 +58,8 @@ update() {
     case 3:
         //Position
         newPosOrAngle = this.translate - SIDE_TRANSLATE_DELTA;
-        if( newPos > 0 )
-            this.translate = newPos;
+        if( newPosOrAngle > 0 )
+            this.translate = newPosOrAngle;
         else {
             this.translate = 0;
             this.state     = 0;
