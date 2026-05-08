@@ -45,8 +45,8 @@ update() {
         //Angle
         newPosOrAngle = this.angle + this.angleDelta;
         const sign = Math.sign( this.angleDelta );
-        if( sign * newAngle < sign * this.angleIdeal ) {
-            this.angle = newAngle;
+        if( sign * newPosOrAngle < sign * this.angleIdeal ) {
+            this.angle = newPosOrAngle;
         } else {
             this.angle = wrap( this.angleIdeal, TWO_PI );
             this.angleIdeal = this.angle;
