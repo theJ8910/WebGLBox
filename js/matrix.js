@@ -5,35 +5,35 @@
 //There is a "transpose" parameter you can set to true to tell it your data is in row-major order,
 //but this parameter is useless because the spec requires it to be false.
 //What does this mean? The array:
-//const myData = Float32Array.of(
-//     0, 1, 2, 3,
-//     4, 5, 6, 7,
-//     8, 9,10,11,
-//    12,13,14,15
-//);
+//    const myData = Float32Array.of(
+//         0, 1, 2, 3,
+//         4, 5, 6, 7,
+//         8, 9,10,11,
+//        12,13,14,15
+//    );
 //...becomes the following matrix:
-//| 0 4  8 12 |
-//| 1 5  9 13 |
-//| 2 6 10 14 |
-//| 3 7 11 15 |
+//    | 0 4  8 12 |
+//    | 1 5  9 13 |
+//    | 2 6 10 14 |
+//    | 3 7 11 15 |
 //In other words, the resulting matrix is transposed!
 //How stupid is this? This could practically define the phrase "counter-intuitive".
 //Keep this in mind when looking at matrix arrays here!
 //
 //For more information see the following links:
-//https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glUniform.xml
-//https://en.wikipedia.org/wiki/Row-_and_column-major_order
+//    https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glUniform.xml
+//    https://en.wikipedia.org/wiki/Row-_and_column-major_order
 //
 //Other notes:
 //Row vectors and column vectors are two ways of representing the same vector as a matrix.
 //Take the 4D vector <1, 2, 3, 1> for instance.
 //When written as a row vector (a 4x1 matrix) it looks like this:
-// | 1 2 3 1 |
+//    | 1 2 3 1 |
 //when written as a column vector (a 1x4 matrix) it looks like this:
-// | 1 |
-// | 2 |
-// | 3 |
-// | 1 |
+//    | 1 |
+//    | 2 |
+//    | 3 |
+//    | 1 |
 //
 //My code uses column vectors as suggested by the OpenGL specification.
 //Either choice is fine - mathematically speaking you'll arrive at the same values regardless of your choice.
@@ -41,18 +41,18 @@
 //the values within the matrices you'll be using and the order of your matrix multiplications.
 //If using row vectors, your transformations will take place left-to-right (e.g.: vector * world * view * projection),
 //and your matrices will be arranged like so, where x, y, and z are your basis vectors and p is your translation:
-//| x.x x.y x.z 0   |
-//| y.x y.y y.z 0   |
-//| z.x z.y z.z 0   |
-//| p.x p.y p.z 1   |
+//    | x.x x.y x.z 0   |
+//    | y.x y.y y.z 0   |
+//    | z.x z.y z.z 0   |
+//    | p.x p.y p.z 1   |
 //If using column vectors, your transformations will take place right-to-left (e.g.: projection * view * world * vector), and your matrices will be arranged like so:
-//| x.x y.x z.x p.x |
-//| x.y y.y z.y p.y |
-//| x.z y.z z.z p.z |
-//| 0   0   0   1   |
+//    | x.x y.x z.x p.x |
+//    | x.y y.y z.y p.y |
+//    | x.z y.z z.z p.z |
+//    | 0   0   0   1   |
 //
 //For more information see the following link:
-//https://en.wikipedia.org/wiki/Row_and_column_vectors
+//    https://en.wikipedia.org/wiki/Row_and_column_vectors
 
 //4x4 identity matrix
 const IDENTITY = Float32Array.of(
@@ -79,25 +79,25 @@ function world( x, y, z, p ) {
 }
 
 //Builds a view matrix from vectors describing the viewer's position and orientation.
-//The forward vector should point towards the object you want to capture.
-//f: forward vector.  This is the +Z direction of the viewer's orientation.
-//r: right vector.    This is the +X direction of the viewer's orientation.
-//u: up vector.       This is the +Y direction of the viewer's orientation.
+//x: Vector pointing in the +X direction of the viewer's orientation.
+//y: Vector pointing in the +Y direction of the viewer's orientation.
+//z: Vector pointing in the +Z direction of the viewer's orientation.
+//   Should point towards the object you want to capture.
 //p: position vector. This is the viewer's position.
-//f, r, and u should be at 90 degree angles to one another
-function view( f, r, u, p ) {
+//x, y, and z should be at 90 degree angles to one another.
+function view( x, y, z, p ) {
     /*
-    a,b,c = R.x, U.x, F.x
-    d,e,f = R.y, U.y, F.y
-    g,h,i = R.z, U.z, F.z
-    x,y,z = P.x, P.y, P.z
+    a,b,c = x.x, y.x, z.x
+    d,e,f = x.y, y.y, z.y
+    g,h,i = x.z, y.z, z.z
+    j,k,l = p.x, p.y, p.z
     
-    F,R,U form a rotation matrix R, P forms a translation matrix T
+    x,y,z form a rotation matrix R, p forms a translation matrix T
     World Matrix = T*R
     View Matrix = Inverse( World Matrix ) = Inverse(R) * Inverse(T):
-    | a d g -ax-dy-gz |
-    | b e h -bx-ey-hz |
-    | c f i -cx-fy-iz |
+    | a d g -aj-dk-gl |
+    | b e h -bj-ek-hl |
+    | c f i -cj-fk-il |
     | 0 0 0 1         |
 
     0 4  8 12
@@ -105,30 +105,30 @@ function view( f, r, u, p ) {
     2 6 10 14
     3 7 11 15
     */
-    const tx = -r[0]*p[0] - r[1]*p[1] - r[2]*p[2];
-    const ty = -u[0]*p[0] - u[1]*p[1] - u[2]*p[2];
-    const tz = -f[0]*p[0] - f[1]*p[1] - f[2]*p[2];
+    const tx = -x[0]*p[0] - x[1]*p[1] - x[2]*p[2];
+    const ty = -y[0]*p[0] - y[1]*p[1] - y[2]*p[2];
+    const tz = -z[0]*p[0] - z[1]*p[1] - z[2]*p[2];
     return Float32Array.of(
-        r[0],  u[0],  f[0], 0,
-        r[1],  u[1],  f[1], 0,
-        r[2],  u[2],  f[2], 0,
+        x[0],  y[0],  z[0], 0,
+        x[1],  y[1],  z[1], 0,
+        x[2],  y[2],  z[2], 0,
         tx,    ty,    tz,   1
     );
 }
 
 //Returns a view matrix where the viewer is positioned at "from", looking at "to".
-//The viewer is oriented such that his "up" is as close as possible to the given "up" vector.
+//The viewer is oriented such that their "up" is as close as possible to the given "up" vector.
 function view_lookat( from, to, up ) {
-    const fwd   = vecNormalize( vecSub( to, from ) );
-    const up_r  = vecNormalize( vecProject( up, fwd ) );
-    const right = vecCross( fwd, up_r );
+    const z = vecNormalize( vecSub( to, from ) );
+    const y = vecNormalize( vecProject( up, fwd ) );
+    const x = vecCross( fwd, up_r );
 
-    return view( fwd, right, up_r, from );
+    return view( x, y, z, from );
 }
 
 //Returns a view matrix that looks at pt, orbiting the given distance away from it at the given pitch and yaw.
-//A pitch of 0 places the viewer in the X/Y plane. A pitch of Math.PI/2 places the viewer on the Z axis.
-//If pitch is 0, a yaw of 0 places the viewer on the +X axis. A yaw of Math.PI/2 places the viewer on the +Y axis.
+//A pitch of 0 places the viewer in the XZ-plane. A pitch of Math.PI/2 places the viewer on the +Y axis.
+//If pitch is 0, a yaw of 0 places the viewer on the +X axis. A yaw of Math.PI/2 places the viewer on the -Z axis.
 function view_orbit( pt, pitch, yaw, distance ) {
     const c = Math.cos( pitch );
     const s = Math.sin( pitch );
@@ -136,16 +136,16 @@ function view_orbit( pt, pitch, yaw, distance ) {
     const c2 = Math.cos( yaw );
     const s2 = Math.sin( yaw );
 
-    //fwd faces towards the point.
-    const fwd   = [ -c2*c, -s2*c, -s ];
-    //A vector as close to "up" as possible while still being at a 90 degree angle to fwd. It's a "relative up".
-    const up_r  = vecNormalize( vecProject( UP, fwd ) );
-    //At a 90 degree angle to both fwd and up.
-    const right = vecCross( fwd, up_r );
-    //We move in the direction opposite of fwd, by "distance" units.
-    const viewer_pos = vecSub( pt, vecMul( distance, fwd ) );
+    //z faces towards the point.
+    const z = [ -c*c2, -s, c*s2 ];
+    //A vector as close to Y_POS as possible while still being at a 90 degree angle to z. y is a relative Y_POS.
+    const y = vecNormalize( vecProject( POS_Y, z ) );
+    //At a 90 degree angle to both z and y.
+    const x = vecCross( z, y );
+    //We move in the direction opposite of z, by "distance" units.
+    const p = vecSub( pt, vecMul( distance, z ) );
 
-    return view( fwd, right, up_r, viewer_pos );
+    return view( x, y, z, p );
 }
 
 //Centered orthographic projection
@@ -192,6 +192,16 @@ function transform( matrix, vec ) {
     ];
 }
 
+//Returns a matrix that moves vertices by x, y, and z units on the x, y and z axis, respectively.
+function translation( x, y, z ) {
+    return Float32Array.of(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        x, y, z, 1
+    );
+}
+
 //Returns a copy of the given matrix.
 function matrixCopy( mat ) {
     return Float32Array.of(
@@ -231,6 +241,16 @@ function matrixMultiply( left, right ) {
         left[2] * right[12] + left[6] * right[13] + left[10] * right[14] + left[14] * right[15], //14 = left.row_2 * right.column_3
         left[3] * right[12] + left[7] * right[13] + left[11] * right[14] + left[15] * right[15], //15 = left.row_3 * right.column_3
     );
+}
+
+function matrixMultiply_v( ...args ) {
+    if( args.length == 0 ) {
+        return matrixCopy( IDENTITY );
+    } else if( args.length == 1 ) {
+        return matrixCopy( args[0] );
+    } else {
+        return args.reduce( ( l, r ) => matrixMultiply( l, r ) );
+    }
 }
 
 //Returns the inverse of the given 4x4 matrix, or null if the matrix is not invertible.
@@ -302,8 +322,8 @@ function matrixInvert( mat ) {
 //Returns a string with each of the matrix's components, organized into rows and columns
 function matrixToString( mat ) {
     return "\n" +
-           mat[0] + " " + mat[4] + " " + mat[ 8] + " " + mat[12] + "\n" +
-           mat[1] + " " + mat[5] + " " + mat[ 9] + " " + mat[13] + "\n" +
-           mat[2] + " " + mat[6] + " " + mat[10] + " " + mat[14] + "\n" +
-           mat[3] + " " + mat[7] + " " + mat[11] + " " + mat[15] + "\n"
+           mat[0].toFixed( 5 ) + " " + mat[4].toFixed( 5 ) + " " + mat[ 8].toFixed( 5 ) + " " + mat[12].toFixed( 5 ) + "\n" +
+           mat[1].toFixed( 5 ) + " " + mat[5].toFixed( 5 ) + " " + mat[ 9].toFixed( 5 ) + " " + mat[13].toFixed( 5 ) + "\n" +
+           mat[2].toFixed( 5 ) + " " + mat[6].toFixed( 5 ) + " " + mat[10].toFixed( 5 ) + " " + mat[14].toFixed( 5 ) + "\n" +
+           mat[3].toFixed( 5 ) + " " + mat[7].toFixed( 5 ) + " " + mat[11].toFixed( 5 ) + " " + mat[15].toFixed( 5 ) + "\n"
 }

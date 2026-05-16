@@ -1,11 +1,11 @@
 "use strict";
 
-const EAST  = [ 1,  0,  0 ];
-const WEST  = [-1,  0,  0 ];
-const UP    = [ 0,  0,  1 ];
-const DOWN  = [ 0,  0, -1 ];
-const NORTH = [ 0,  1,  0 ];
-const SOUTH = [ 0, -1,  0 ];
+const POS_X = [ 1,  0,  0 ]; //East
+const NEG_X = [-1,  0,  0 ]; //West
+const POS_Y = [ 0,  1,  0 ]; //Up
+const NEG_Y = [ 0, -1,  0 ]; //Down
+const POS_Z = [ 0,  0,  1 ]; //South
+const NEG_Z = [ 0,  0, -1 ]; //North
 const ZERO  = [ 0 , 0,  0 ];
 
 function vecAdd( left, right ) {

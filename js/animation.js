@@ -76,31 +76,31 @@ updateMatrix() {
     const c = Math.cos( this.angle );
     const s = Math.sin( this.angle );
 
-    let x = EAST, y = NORTH, z = UP;
+    let x = POS_X, y = POS_Y, z = POS_Z;
     switch( side ) {
     case SIDE_FRONT:
-        x = [  c,  0, -s ];
-        z = [  s,  0,  c ];
-    break;
-    case SIDE_BACK:
-        x = [  c,  0,  s ];
-        z = [ -s,  0,  c ];
-    break;
-    case SIDE_RIGHT:
         y = [  0,  c,  s ];
         z = [  0, -s,  c ];
     break;
-    case SIDE_LEFT:
+    case SIDE_BACK:
         y = [  0,  c, -s ];
         z = [  0,  s,  c ];
     break;
-    case SIDE_TOP:
+    case SIDE_RIGHT:
         x = [  c,  s,  0 ];
         y = [ -s,  c,  0 ];
     break;
-    case SIDE_BOTTOM:
+    case SIDE_LEFT:
         x = [  c, -s,  0 ];
         y = [  s,  c,  0 ];
+    break;
+    case SIDE_TOP:
+        x = [  c,  0, -s ];
+        z = [  s,  0,  c ];
+    break;
+    case SIDE_BOTTOM:
+        x = [  c,  0,  s ];
+        z = [ -s,  0,  c ];
     break;
     }
     m_side[ side ] = world( x, y, z, vecMul( this.translate, SIDE_DIRECTION[ side ] ) );
