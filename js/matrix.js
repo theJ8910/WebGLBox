@@ -82,7 +82,7 @@ function world( x, y, z, p ) {
 //x: Vector pointing in the +X direction of the viewer's orientation.
 //y: Vector pointing in the +Y direction of the viewer's orientation.
 //z: Vector pointing in the +Z direction of the viewer's orientation.
-//   Should point towards the object you want to capture.
+//   Should point away from the object you want to capture.
 //p: position vector. This is the viewer's position.
 //x, y, and z should be at 90 degree angles to one another.
 function view( x, y, z, p ) {
@@ -119,9 +119,9 @@ function view( x, y, z, p ) {
 //Returns a view matrix where the viewer is positioned at "from", looking at "to".
 //The viewer is oriented such that their "up" is as close as possible to the given "up" vector.
 function view_lookat( from, to, up ) {
-    const z = vecNormalize( vecSub( to, from ) );
-    const y = vecNormalize( vecProject( up, fwd ) );
-    const x = vecCross( fwd, up_r );
+    const z = vecNormalize( vecSub( from, to ) );
+    const y = vecNormalize( vecProject( up, z ) );
+    const x = vecCross( y, z );
 
     return view( x, y, z, from );
 }
@@ -136,14 +136,14 @@ function view_orbit( pt, pitch, yaw, distance ) {
     const c2 = Math.cos( yaw );
     const s2 = Math.sin( yaw );
 
-    //z faces towards the point.
-    const z = [ -c*c2, -s, c*s2 ];
+    //z faces away from the point.
+    const z = [ c*c2, s, -c*s2 ];
     //A vector as close to Y_POS as possible while still being at a 90 degree angle to z. y is a relative Y_POS.
     const y = vecNormalize( vecProject( POS_Y, z ) );
-    //At a 90 degree angle to both z and y.
-    const x = vecCross( z, y );
-    //We move in the direction opposite of z, by "distance" units.
-    const p = vecSub( pt, vecMul( distance, z ) );
+    //At a 90 degree angle to both y and z.
+    const x = vecCross( y, z );
+    //We move in the direction of z by "distance" units.
+    const p = vecAdd( pt, vecMul( distance, z ) );
 
     return view( x, y, z, p );
 }
@@ -155,7 +155,7 @@ function ortho( w, h, n, f ) {
     return Float32Array.of(
         2/w, 0,   0,               0,
         0,   2/h, 0,               0,
-        0,   0,   2/zOff,          0,
+        0,   0,   -2/zOff,         0,
         0,   0,   -(f + n) / zOff, 1
     );
 }
@@ -171,7 +171,7 @@ function ortho_oc( l, r, b, t, n, f ) {
     return Float32Array.of(
         2/xOff,           0,                0,               0,
         0,                2/yOff,           0,               0,
-        0,                0,                2/zOff,          0,
+        0,                0,                -2/zOff,         0,
         -(r + l) / xOff,  -(t + b) / yOff,  -(f + n) / zOff, 1
     );
 }
@@ -321,9 +321,23 @@ function matrixInvert( mat ) {
 
 //Returns a string with each of the matrix's components, organized into rows and columns
 function matrixToString( mat ) {
-    return "\n" +
-           mat[0].toFixed( 5 ) + " " + mat[4].toFixed( 5 ) + " " + mat[ 8].toFixed( 5 ) + " " + mat[12].toFixed( 5 ) + "\n" +
-           mat[1].toFixed( 5 ) + " " + mat[5].toFixed( 5 ) + " " + mat[ 9].toFixed( 5 ) + " " + mat[13].toFixed( 5 ) + "\n" +
-           mat[2].toFixed( 5 ) + " " + mat[6].toFixed( 5 ) + " " + mat[10].toFixed( 5 ) + " " + mat[14].toFixed( 5 ) + "\n" +
-           mat[3].toFixed( 5 ) + " " + mat[7].toFixed( 5 ) + " " + mat[11].toFixed( 5 ) + " " + mat[15].toFixed( 5 ) + "\n"
+    let sa = [];
+    let mw = 0;
+    let s;
+
+    //Convert matrix entries to strings using a fixed representation accurate to 5 decimal places.
+    //Keep track of the length of the longest string.
+    for( let i = 0; i < 16; ++i ) {
+        s = mat[i].toFixed( 5 );
+        sa.push( s );
+        mw = Math.max( mw, s.length );
+    }
+
+    //For each string, pad with spaces at the start to match the width of the longest string if necessary.
+    for( let i = 0; i < 16; ++i ) {
+        sa[i] = sa[i].padStart( mw );
+    }
+
+    //Format string entries into rows and columns and return it.
+    return `${sa[ 0]} ${sa[ 4]} ${sa[ 8]} ${sa[12]}\n${sa[ 1]} ${sa[ 5]} ${sa[ 9]} ${sa[13]}\n${sa[ 2]} ${sa[ 6]} ${sa[10]} ${sa[14]}\n${sa[ 3]} ${sa[ 7]} ${sa[11]} ${sa[15]}\n`;
 }
